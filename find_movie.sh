@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ################################################################################
 # find_movie.sh
 #
@@ -53,7 +55,7 @@ find_movie() {
     done
 
     local movie_name="$1"
-    local movies_file="Notes/movies.md"
+    local movies_file="$HOME/Notes/movies.md"
     local temp_file=$(mktemp)
 
     # Search for the movie with highlighted term
@@ -82,3 +84,8 @@ find_movie() {
     # Clean up
     rm "$temp_file"
 }
+
+# Execute the function if script is run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    find_movie "$@"
+fi

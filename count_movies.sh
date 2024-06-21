@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ################################################################################
 # count_movies.sh
 #
@@ -16,8 +18,13 @@
 ################################################################################
 
 count_movies() {
-    count=$(wc -l < Notes/movies.md)
+    local count=$(wc -l < $HOME/Notes/movies.md)
     echo ""
     echo "Total number of movies: $count"
     echo ""
 }
+
+# Execute the function if script is run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    count_movies
+fi

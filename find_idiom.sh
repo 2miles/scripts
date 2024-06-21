@@ -20,9 +20,28 @@
 ################################################################################
 
 find_idiom() {
-    count=$(grep -ci "$1" Notes/Idioms.md)
+    local idioms_file="$HOME/Notes/idioms.md"
+
+    # Check if the keyword argument is provided
+    if [ -z "$1" ]; then
+        echo "Usage: find_idiom KEYWORD"
+        return 1
+    fi
+
+    # Check if the idioms file exists
+    if [ ! -f "$idioms_file" ]; then
+        echo "Error: $idioms_file not found."
+        return 1
+    fi
+
+    local count=$(grep -ci "$1" "$idioms_file")
     echo ""
     echo "Number of idioms found: $count"
     echo ""
-    grep -i "$1" Notes/Idioms.md
+    grep -i "$1" "$idioms_file"
 }
+
+# Check if the script is being run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    find_idiom "$@"
+fi

@@ -56,21 +56,28 @@
 #   - If the sed command does not process the file correctly, check for any 
 #     syntax issues or compatibility problems with your system's version of sed.
 # -----------------------------------------------------------------------------
+update_movies() {
 
-# Compile movie list on NAS
-ssh milesadmin@192.168.0.2 'cd /volume1/data/media;
-ls {./animated,./anime,./movies,./documentaries} > movies_new.md'
+	# Compile movie list on NAS
+	ssh milesadmin@192.168.0.2 'cd /volume1/data/media;
+	ls {./animated,./anime,./movies,./documentaries} > movies_new.md'
 
-# Download the movie list
-scp milesadmin@192.168.0.2:/volume1/data/media/movies_new.md ~/Downloads/
+	# Download the movie list
+	scp milesadmin@192.168.0.2:/volume1/data/media/movies_new.md ~/Downloads/
 
-# Sort, clean, and convert to markdown list format
-cd ~/Downloads
-sort -o movies_new.md movies_new.md
-sed -iE '/^\.\//d; /^@ea/d; /^$/d; s/ \[[^]]*\]//g; s/^/- /' movies_new.md
+	# Sort, clean, and convert to markdown list format
+	cd ~/Downloads
+	sort -o movies_new.md movies_new.md
+	sed -iE '/^\.\//d; /^@ea/d; /^$/d; s/ \[[^]]*\]//g; s/^/- /' movies_new.md
 
-# Replace the old movie.md file in your notes with the new one
-mv movies_new.md ~/Notes
-cd ~/Notes
-rm movies.md
-mv movies_new.md movies.md
+	# Replace the old movie.md file in your notes with the new one
+	mv movies_new.md ~/Notes
+	cd ~/Notes
+	rm movies.md
+	mv movies_new.md movies.md
+}
+
+# Check if the script is being run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    update_movies
+fi
