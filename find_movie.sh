@@ -32,6 +32,39 @@
 #
 ################################################################################
 
+show_help() {
+    cat << EOF
+Usage: ./find_movie.sh [OPTIONS] MOVIE_TITLE
+
+Options:
+  -d, --date      Sort movies by date (year).
+  -y, --year YEAR Filter movies by the specified year.
+  -h, --help      Display this help message.
+
+Example usage:
+  ./find_movie.sh 
+    - Searches for all movies
+
+  ./find_movie.sh "Batman"
+    - Searches for movies containing "Batman" in their titles.
+
+  ./find_movie.sh -d "Batman"
+    - Searches for movies containing "Batman" and sorts them by date.
+
+  ./find_movie.sh -y 2022 "Batman"
+    - Searches for movies containing "Batman" released in the year 2022.
+
+  ./find_movie.sh -y 2022
+    - Searches for all movies from 2022
+
+Notes:
+  - Movie titles must be listed in a markdown file named "movies.md" in the
+    "Notes" directory relative to the script.
+  - Output includes the number of movies found and lists them with highlighted
+    search terms (if available) or sorted by date (if -d option is used).
+EOF
+}
+
 find_movie() {
     local sort_by_date=false
     local year_filter=""
@@ -45,6 +78,10 @@ find_movie() {
             -y|--year)
                 shift
                 year_filter="$1"
+                ;;
+            -h|--help)
+                show_help
+                return 0
                 ;;
             *)
                 echo "Unknown option: $1"
