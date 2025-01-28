@@ -56,6 +56,7 @@
 ################################################################################
 
 import os
+import subprocess
 from datetime import datetime
 import argparse
 from typing import List, Dict, Any, Optional
@@ -186,6 +187,11 @@ def list_unfinished_tasks() -> None:
     unfinished_tasks: List[str] = []
     task_counter: int = 1
 
+    print("")
+    print("**************************************************************************")
+    print("*                         All Unfinished Tasks                           *")
+    print("**************************************************************************")
+    print("")
     for day in data:
         for task in day["tasks"]:
             if not task["completed"]:
@@ -239,8 +245,27 @@ def open_file_in_vim() -> None:
 
 
 def open_file_in_browser() -> None:
-    """Open the markdown file in the default markdown viewer."""
-    os.system(f"grip {FILE_PATH} --browser")
+    """Render Markdown file to HTML and open it in the browser."""
+    html_output = os.path.join(BASE_DIR, "output.html")
+    custom_css_url = "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-dark.min.css"
+    subprocess.run(
+        [
+            "pandoc",
+            FILE_PATH,
+            "-f",
+            "markdown",
+            "-t",
+            "html",
+            "-s",
+            "-o",
+            html_output,
+            "--css",
+            custom_css_url,
+            "--highlight-style",
+            "tango",
+        ]
+    )
+    os.system(f"open {html_output}")
 
 
 def main() -> None:
