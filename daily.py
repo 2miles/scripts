@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 ################################################################################
 # daily.py
 #
@@ -63,47 +62,121 @@ if not os.path.exists(FILE_PATH):
 
 
 def parse_markdown(file_path: str) -> List[Dict[str, Any]]:
-    """Parse the markdown file into a JSON-like structure."""
-    data: List[Dict] = []
-    current_day: Optional[Dict] = None
+    """
+    Parse the markdown file, treating notes as a single text block and preserving tasks.
+    # Example output of parse_markdown(file_path)
+    [
+        {
+            "date": "2024-01-28",
+            "tasks": [
+                {"name": "Finish writing report", "completed": False},
+                {"name": "Review code changes", "completed": True},
+            ],
+            "notes": [
+                "Had a meeting with the project team.",
+                "Discussed potential refactoring for the API.",
+            ],
+        },
+        {
+            "date": "2024-01-29",
+            "tasks": [
+                {"name": "Update documentation", "completed": True},
+                {"name": "Push latest changes to GitHub", "completed": False},
+            ],
+            "notes": [
+                "Started planning the next sprint.",
+                "Identified a bug in the authentication system.",
+            ],
+        },
+    ]
+    """
+    data: List[Dict[str, Any]] = []
+    current_day: Optional[Dict[str, Any]] = None
+    in_notes_section = False
+    in_tasks_section = False
+    notes_buffer = []
+    tasks_buffer = []
 
     if not os.path.exists(file_path):
         return data
 
     with open(file_path, "r") as file:
         for line in file:
-            line = line.strip()
+            line = line.rstrip()  # Keep trailing whitespace but remove \n issues
+
             if line.startswith("## "):  # Date header
                 if current_day:
+                    current_day["notes"] = "\n".join(
+                        notes_buffer
+                    ).strip()  # Save notes as a single block
+                    current_day["tasks"] = tasks_buffer  # Save tasks correctly
                     data.append(current_day)
-                current_day = {"date": line[3:], "tasks": [], "notes": []}
-            elif current_day is not None:  # Ensure current_day is initialized
-                if line.startswith("- [ ]") or line.startswith("- [x]"):  # Task
-                    completed: bool = line.startswith("- [x]")
-                    task_name: str = line[6:].strip()
-                    current_day["tasks"].append(
-                        {"name": task_name, "completed": completed}
-                    )
-                elif line and not line.startswith("###"):  # Note
-                    current_day["notes"].append(line)
-        if current_day:  # Append the last day
+
+                current_day = {"date": line[3:], "tasks": [], "notes": ""}
+                in_notes_section = False
+                in_tasks_section = False
+                notes_buffer = []
+                tasks_buffer = []
+
+            elif current_day is not None:
+                if line.startswith("### Tasks"):
+                    in_notes_section = False
+                    in_tasks_section = True
+                elif line.startswith("### Notes"):
+                    in_tasks_section = False
+                    in_notes_section = True
+                elif in_tasks_section:
+                    if line.startswith("- [ ]") or line.startswith("- [x]"):
+                        completed = line.startswith("- [x]")
+                        task_name = line[6:].strip()
+                        tasks_buffer.append({"name": task_name, "completed": completed})
+                elif in_notes_section:
+                    notes_buffer.append(line)
+
+        if current_day:
+            current_day["notes"] = "\n".join(
+                notes_buffer
+            ).strip()  # Save last notes block
+            current_day["tasks"] = tasks_buffer  # Save last tasks block
             data.append(current_day)
 
     return data
 
 
 def write_markdown(file_path: str, data: List[Dict]) -> None:
-    """Write the JSON-like structure back to the markdown file."""
+    """Write the JSON-like structure back to the markdown file while preserving tasks and notes."""
     with open(file_path, "w") as file:
         for day in data:
-            file.write(f"## {day['date']}\n\n### Tasks\n\n")
-            for task in day["tasks"]:
-                status = "[x]" if task["completed"] else "[ ]"
-                file.write(f"- {status} {task['name']}\n")
-            file.write("\n### Notes\n\n")
-            for note in day["notes"]:
-                file.write(f"{note}\n\n")
-            file.write("\n")
+            file.write(f"## {day['date']}\n\n### Tasks\n")
+            if day["tasks"]:
+                for task in day["tasks"]:
+                    status = "[x]" if task["completed"] else "[ ]"
+                    file.write(f"- {status} {task['name']}\n")
+            file.write("\n### Notes\n")
+            if day["notes"]:
+                file.write(f"{day['notes']}\n")
+            file.write("\n")  # Ensure spacing between days
+
+
+def write_markdown(file_path: str, data: List[Dict]) -> None:
+    """Write the JSON-like structure back to the markdown file while preserving spacing correctly."""
+    with open(file_path, "w") as file:
+        for day in data:
+            # Ensure a blank line before each new day's entry
+            file.write(f"\n## {day['date']}\n\n")
+
+            # Write tasks section only if there are tasks
+            if day["tasks"]:
+                file.write("### Tasks\n\n")
+                for task in day["tasks"]:
+                    status = "[x]" if task["completed"] else "[ ]"
+                    file.write(f"- {status} {task['name']}\n")
+                file.write("\n")  # Ensure a blank line after tasks
+
+            # Write notes section only if there are notes
+            if day["notes"]:
+                file.write("### Notes\n\n")
+                file.write(f"{day['notes']}\n\n")  # Ensure a blank line after notes
 
 
 def create_new_day(data: List[Dict], date: str) -> Dict:
@@ -126,7 +199,7 @@ def add_checkbox(task_name: str) -> None:
 
     day["tasks"].append({"name": task_with_date, "completed": False})
     write_markdown(FILE_PATH, data)
-    print(f"Added task: {task_with_date[:32]}")
+    print(f"Added task: {task_with_date[:32]}...")
 
 
 def add_multiple_checkboxes(task_names: list[str]) -> None:
@@ -154,14 +227,30 @@ def interactive_add_checkbox() -> None:
     add_checkbox(task_name)
 
 
-def add_note(note: str) -> None:
-    """Add a new note under today's '### Notes' section."""
+# def add_note(note: str) -> None:
+#     """Add a new note under today's '### Notes' section."""
+#     data = parse_markdown(FILE_PATH)
+#     today = f"{CURRENT_DATE} {CURRENT_DAY}"
+#     day = create_new_day(data, today)
+#     day["notes"].append(note)
+#     write_markdown(FILE_PATH, data)
+#     print(f"Added note: {note[:32]}... ")
+
+
+def add_note(new_note: str) -> None:
+    """Add a new note under today's '### Notes' section as a single text block."""
     data = parse_markdown(FILE_PATH)
     today = f"{CURRENT_DATE} {CURRENT_DAY}"
     day = create_new_day(data, today)
-    day["notes"].append(note)
+
+    # Ensure a blank line before the new note if there are existing notes
+    if day["notes"]:
+        day["notes"] += f"\n\n{new_note}"
+    else:
+        day["notes"] = new_note
+
     write_markdown(FILE_PATH, data)
-    print(f"Added note: {note[:32]}... ")
+    print(f"Added note: {new_note[:32]}...")
 
 
 def interactive_add_note() -> None:
@@ -408,7 +497,6 @@ def main() -> None:
             add_multiple_checkboxes(tasks)
         case argparse.Namespace(update=True):
             move_unchecked()
-
         case _:
             parser.print_help()
 
