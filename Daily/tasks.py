@@ -24,9 +24,27 @@ def add_checkbox(file_path: str, task_name: str) -> None:
     today = f"{CURRENT_DATE} {CURRENT_DAY}"
     day = create_new_day(data, today)
 
+    # Extract tag if task starts with backticks (e.g.,)
+    tag_match = re.match(r"`(.*?)`\s*(.*)", task_name)
+    if tag_match:
+        tag = tag_match.group(1).strip()
+        task_name = tag_match.group(2).strip()
+    else:
+        tag = "UNTAGGED"
+
+    # Format task with start date
     task_with_date = f"{task_name} -- ({CURRENT_DATE[5:]})"
 
-    day["tasks"].append({"name": task_with_date, "completed": False})
+    # Append task with all required fields
+    day["tasks"].append(
+        {
+            "name": task_name,
+            "completed": False,
+            "started_date": CURRENT_DATE,  # YYYY-MM-DD
+            "tag": tag,  # Always there
+        }
+    )
+
     write_markdown(file_path, data)
     print(f"Added task: {task_with_date[:32]}...")
 
@@ -64,11 +82,27 @@ def list_unfinished_tasks(file_path: str) -> None:
     data = parse_markdown(file_path)
     unfinished_tasks: List[str] = []
     task_counter: int = 1
-
+    print()
+    print(
+        "****************************************************************************"
+    )
+    print(
+        "|                          All Unfinished Tasks                            |"
+    )
+    print(
+        "****************************************************************************"
+    )
+    print()
     for day in data:
         for task in day["tasks"]:
             if not task["completed"]:
-                unfinished_tasks.append(f"{task_counter}. {task['name']}")
+                truncated_name = task["name"][:45]
+                if len(truncated_name) > 44:
+                    truncated_name = truncated_name + "..."
+
+                unfinished_tasks.append(
+                    f"{task_counter}.  {task['tag']:<8}   {truncated_name:<48}   {task['started_date']}"
+                )
                 task_counter += 1
 
     if not unfinished_tasks:
@@ -79,19 +113,35 @@ def list_unfinished_tasks(file_path: str) -> None:
 
 
 def list_completed_tasks(file_path: str) -> None:
-    """List all completed tasks across all days."""
+    """List all completed tasks across all days, including tags and started dates."""
     data = parse_markdown(file_path)
     completed_tasks: List[str] = []
 
     for day in data:
-        day_tasks = [task["name"] for task in day["tasks"] if task["completed"]]
+        day_tasks = [
+            {
+                "name": task["name"],
+                "tag": f"[{task['tag']}]" if task["tag"] else "[UNTAGGED]",
+                "started_date": (
+                    f"(Started: {task['started_date']})" if task["started_date"] else ""
+                ),
+            }
+            for task in day["tasks"]
+            if task["completed"]
+        ]
+
         if day_tasks:
             completed_tasks.append(f"## {day['date']}")
-            completed_tasks.extend([f"- [x] {task}" for task in day_tasks])
+            completed_tasks.extend(
+                [
+                    f"- [x] {task['tag']} {task['name']} {task['started_date']}".strip()
+                    for task in day_tasks
+                ]
+            )
             completed_tasks.append("")
 
     output = "\n".join(completed_tasks)
-    if not output:
+    if not output.strip():
         print("No completed tasks found.")
     else:
         print(output)

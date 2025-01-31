@@ -1,9 +1,10 @@
 import os
+import re
 from typing import List, Dict, Any, Optional
 
 
 def parse_markdown(file_path: str) -> List[Dict[str, Any]]:
-    """Parse the markdown file, treating notes as a single text block and preserving tasks."""
+    """Parse the markdown file, extracting tasks with tags and started dates."""
     data: List[Dict[str, Any]] = []
     current_day: Optional[Dict[str, Any]] = None
     in_notes_section = False
@@ -40,8 +41,45 @@ def parse_markdown(file_path: str) -> List[Dict[str, Any]]:
                 elif in_tasks_section:
                     if line.startswith("- [ ]") or line.startswith("- [x]"):
                         completed = line.startswith("- [x]")
-                        task_name = line[6:].strip()
-                        tasks_buffer.append({"name": task_name, "completed": completed})
+                        task_text = line[6:].strip()  # Remove checkbox prefix
+                        # Remove trailing "--" if present
+                        # task_text = re.sub(r"\s*--\s*$", "", task_text)
+                        task_text = re.sub(
+                            r"\s*--(?=\s*\(\d{2}-\d{2}\)$)", "", task_text
+                        ).strip()
+
+                        # Extract started_date (if present)
+                        started_date_match = re.search(r"\((\d{2}-\d{2})\)$", task_text)
+                        if started_date_match:
+                            month_day = started_date_match.group(1)
+                            started_date = f"{current_day['date'][:4]}-{month_day}"  # Convert to YYYY-MM-DD
+                            task_text = re.sub(
+                                r"\(\d{2}-\d{2}\)$", "", task_text
+                            ).strip()  # Remove (MM-DD)
+                        else:
+                            started_date = current_day["date"]  # Default if missing
+
+                        # Extract tag (if present)
+                        tag_match = re.match(r"`(.*?)`\s*(.*)", task_text)
+                        if tag_match:
+                            tag = (
+                                tag_match.group(1).strip()
+                                if tag_match.group(1).strip()
+                                else "UNTAGGED"
+                            )
+                            task_name = tag_match.group(2).strip()
+                        else:
+                            tag = "UNTAGGED"
+                            task_name = task_text.strip()
+
+                        tasks_buffer.append(
+                            {
+                                "name": task_name,
+                                "completed": completed,
+                                "started_date": started_date,
+                                "tag": tag,
+                            }
+                        )
                 elif in_notes_section:
                     notes_buffer.append(line)
 
@@ -54,7 +92,7 @@ def parse_markdown(file_path: str) -> List[Dict[str, Any]]:
 
 
 def write_markdown(file_path: str, data: List[Dict]) -> None:
-    """Write the JSON-like structure back to the markdown file while preserving spacing correctly."""
+    """Write structured task and note data back to a markdown file while preserving formatting."""
     with open(file_path, "w") as file:
         for day in data:
             file.write(f"\n## {day['date']}\n\n")
@@ -63,7 +101,20 @@ def write_markdown(file_path: str, data: List[Dict]) -> None:
                 file.write("### Tasks\n\n")
                 for task in day["tasks"]:
                     status = "[x]" if task["completed"] else "[ ]"
-                    file.write(f"- {status} {task['name']}\n")
+
+                    # Format task name with tag
+                    task_name = (
+                        f"`{task['tag']}` {task['name']}"
+                        if task["tag"]
+                        else task["name"]
+                    )
+                    # Convert started_date from YYYY-MM-DD to (MM-DD)
+                    if task["started_date"]:
+                        formatted_date = f"({task['started_date'][5:]})"  # Extract MM-DD from YYYY-MM-DD
+                        task_name += f" {formatted_date}"
+
+                    file.write(f"- {status} {task_name}\n")
+
                 file.write("\n")
 
             if day["notes"]:
