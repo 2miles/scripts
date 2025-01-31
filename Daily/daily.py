@@ -19,11 +19,8 @@
 #   -lc, --list-completed    List all completed tasks across all days.
 #   -lt, --list-tag TAG      List all tasks with the given tag.
 #   -n, --note               Add a new note to today's section.
-#                            - If no argument is provided, prompts for input interactively.
 #   -o, --open               Open the current month's markdown file in a rendered markdown viewer.
-#   -t, --task [TASK]        Add a new task to today's section.
-#                            - If no argument is provided, prompts for input interactively.
-#   -tl, --task-list [TASKS] Add multiple tasks as a list of strings.
+#   -t, --task               Add a new task to today's section.
 #   -u, --update             Move all unchecked tasks to today's section.
 #
 # Notes:
@@ -34,22 +31,22 @@
 #
 ################################################################################
 
+
 import os
 from datetime import datetime
-from editor import open_file_in_vim, open_file_in_browser
 from parsing import parse_markdown
 from tasks import (
-    add_checkbox,
-    add_multiple_checkboxes,
     check_off_task,
     list_unfinished_tasks,
     list_completed_tasks,
-    move_unchecked,
     list_tasks_by_tag,
     list_task_tags,
+    move_unchecked,
+    interactive_add_task,
 )
 from notes import interactive_add_note
 from cli import parse_arguments
+from editor import open_file_in_vim, open_file_in_browser
 
 # Constants for directories and file paths
 BASE_DIR: str = os.path.expanduser("~/Notes/Daily")
@@ -83,13 +80,12 @@ if __name__ == "__main__":
         "list_tags": lambda: list_task_tags(FILE_PATH),
         "note": lambda: interactive_add_note(FILE_PATH),
         "open": lambda: open_file_in_browser(FILE_PATH),
-        "task": lambda: add_checkbox(FILE_PATH, args.task),
-        "task_list": lambda: add_multiple_checkboxes(FILE_PATH, args.task_list),
+        "task": lambda: interactive_add_task(FILE_PATH),
         "update": lambda: move_unchecked(FILE_PATH),
     }
 
     for cmd, func in COMMANDS.items():
-        if getattr(args, cmd, None):
+        if getattr(args, cmd):
             func()
             break
     else:

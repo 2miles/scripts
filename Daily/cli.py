@@ -44,12 +44,8 @@ def parse_arguments():
     parser.add_argument(
         "-t",
         "--task",
-        nargs="?",
-        const=True,
+        action="store_true",
         help="Add a new task interactively or specify a single task as an argument",
-    )
-    parser.add_argument(
-        "-tl", "--task-list", nargs="+", help="Add multiple tasks as a list of strings"
     )
     parser.add_argument(
         "-u",

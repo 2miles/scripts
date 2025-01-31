@@ -31,18 +31,14 @@ def add_checkbox(file_path: str, task_name: str) -> None:
     print(f"Added task: {task_with_date[:32]}...")
 
 
-def add_multiple_checkboxes(file_path: str, task_names: List[str]) -> None:
-    """Add multiple checkboxes under today's '### Tasks' section."""
-    data = parse_markdown(file_path)
-    today = f"{CURRENT_DATE} {CURRENT_DAY}"
-    day = create_new_day(data, today)
+def interactive_add_task(file_path: str) -> None:
+    """Prompt the user for a task interactively."""
+    task = input("Task: ").strip()
+    if not task:
+        print("Task cannot be empty. Aborting.")
+        return
 
-    for task_name in task_names:
-        task_with_date = f"{task_name} -- ({CURRENT_DATE[5:]})"
-        day["tasks"].append({"name": task_with_date, "completed": False})
-        print(f"Added task: {task_with_date[:32]}...")
-
-    write_markdown(file_path, data)
+    add_checkbox(file_path, task)
 
 
 def check_off_task(file_path: str, task_number: int) -> None:
