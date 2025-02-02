@@ -49,13 +49,15 @@ from tasks import (
 )
 
 # Constants for directories and file paths
-BASE_DIR: str = os.path.expanduser("~/Notes/Daily")
 
 CURRENT_DATE: str = datetime.now().strftime("%Y-%m-%d")
 CURRENT_DAY: str = datetime.now().strftime("%a")
 CURRENT_YEAR: str = datetime.now().strftime("%Y")
 CURRENT_MONTH: str = datetime.now().strftime("%m").lstrip("0")
 CURRENT_MONTH_NAME: str = datetime.now().strftime("%b").lower()
+
+BASE_DIR: str = os.path.expanduser("~/Notes/Daily")
+CURRENT_YEAR_DIR = os.path.join(BASE_DIR, CURRENT_YEAR)
 
 # Path to the current month's file
 FILE_PATH: str = os.path.join(
@@ -82,7 +84,7 @@ if __name__ == "__main__":
         "note": lambda: interactive_add_note(FILE_PATH),
         "open": lambda: open_file_in_browser(FILE_PATH),
         "task": lambda: interactive_add_task(FILE_PATH),
-        "update": lambda: move_unchecked(FILE_PATH),
+        "update": lambda: move_unchecked(CURRENT_YEAR_DIR),
         # "sync_json": lambda: sync_year_json(CURRENT_YEAR),
     }
 

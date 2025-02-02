@@ -1,3 +1,4 @@
+import os
 import re
 from parsing import parse_markdown, write_markdown
 from datetime import datetime
@@ -147,26 +148,137 @@ def list_completed_tasks(file_path: str) -> None:
         print(output)
 
 
-def move_unchecked(file_path: str) -> None:
-    """Move all unchecked tasks to the most recent date."""
-    data = parse_markdown(file_path)
-    today = f"{CURRENT_DATE} {CURRENT_DAY}"
-    most_recent_day = create_new_day(data, today)
+# def move_unchecked(file_path: str) -> None:
+#     """Move all unchecked tasks to the most recent date."""
+#     data = parse_markdown(file_path)
+#     today = f"{CURRENT_DATE} {CURRENT_DAY}"
+#     most_recent_day = create_new_day(data, today)
 
-    moved_tasks: List[Dict] = []
-    for day in data:
-        if day["date"] != today:
-            unchecked = [task for task in day["tasks"] if not task["completed"]]
-            moved_tasks.extend(unchecked)
+#     moved_tasks: List[Dict] = []
+#     for day in data:
+#         if day["date"] != today:
+#             unchecked = [task for task in day["tasks"] if not task["completed"]]
+#             moved_tasks.extend(unchecked)
+#             day["tasks"] = [task for task in day["tasks"] if task["completed"]]
+
+#     if not moved_tasks:
+#         print("No unchecked tasks to move.")
+#         return
+
+#     most_recent_day["tasks"].extend(moved_tasks)
+#     write_markdown(file_path, data)
+#     print(f"Moved {len(moved_tasks)} unchecked tasks to {today}.")
+
+
+# def move_unchecked(file_path: str) -> None:
+#     """Move all unchecked tasks from all monthly files in a given year directory to the most recent date."""
+
+#     # Get the directory from the file path (e.g., '/Users/miles/Notes/Daily/2025/')
+#     year_dir = os.path.dirname(file_path)
+
+#     if not os.path.isdir(year_dir):
+#         print(f"Error: {year_dir} is not a directory.")
+#         return
+
+#     all_tasks = []
+#     file_paths = []
+
+#     # Get all markdown files in the directory
+#     for file_name in sorted(os.listdir(year_dir)):  # Ensure chronological order
+#         file_path = os.path.join(year_dir, file_name)
+
+#         # Ensure we're working with `.md` files
+#         if file_name.endswith(".md") and os.path.isfile(file_path):
+#             data = parse_markdown(file_path)
+#             file_paths.append((file_path, data))
+
+#             for day in data:
+#                 unchecked = [task for task in day["tasks"] if not task["completed"]]
+#                 all_tasks.extend(unchecked)
+#                 day["tasks"] = [task for task in day["tasks"] if task["completed"]]
+
+#     if not all_tasks:
+#         print("No unchecked tasks to move.")
+#         return
+
+#     # Find the most recent file
+#     today = datetime.now().strftime("%Y-%m-%d")
+#     most_recent_file, most_recent_data = file_paths[
+#         -1
+#     ]  # Last file (assumed to be most recent)
+#     most_recent_day = create_new_day(most_recent_data, today)
+
+#     # Move unchecked tasks to the most recent date
+#     most_recent_day["tasks"].extend(all_tasks)
+
+#     # Write modified data back to their respective files
+#     for file_path, data in file_paths:
+#         write_markdown(file_path, data)
+
+#     print(f"Moved {len(all_tasks)} unchecked tasks to {today} in {most_recent_file}.")
+
+
+import os
+import re
+from datetime import datetime
+from typing import List, Dict
+
+# Regex pattern for valid filenames (e.g., 2025_1_jan.md, 2025_12_dec.md)
+VALID_FILENAME_PATTERN = re.compile(r"^\d{4}_\d{1,2}_[a-z]+\.md$", re.IGNORECASE)
+
+
+def move_unchecked(year_dir: str) -> None:
+    """Move all unchecked tasks from all valid monthly files in a given year directory to the most recent date."""
+
+    if not os.path.isdir(year_dir):
+        print(f"Error: '{year_dir}' is not a valid directory.")
+        return
+
+    all_tasks = []
+    file_data = {}
+
+    # Get markdown files that match the expected format
+    md_files = sorted(
+        [f for f in os.listdir(year_dir) if VALID_FILENAME_PATTERN.match(f)],
+        key=lambda f: f.lower(),  # Sort alphabetically, assuming chronological naming
+    )
+
+    if not md_files:
+        print(f"No valid markdown files found in {year_dir}.")
+        return
+
+    # Process each file and collect unchecked tasks
+    for file_name in md_files:
+        file_path = os.path.join(year_dir, file_name)
+        data = parse_markdown(file_path)
+        file_data[file_path] = data  # Store parsed data for later writing
+
+        for day in data:
+            unchecked_tasks = [task for task in day["tasks"] if not task["completed"]]
+            all_tasks.extend(unchecked_tasks)
+            # Keep only completed tasks
             day["tasks"] = [task for task in day["tasks"] if task["completed"]]
 
-    if not moved_tasks:
+    if not all_tasks:
         print("No unchecked tasks to move.")
         return
 
-    most_recent_day["tasks"].extend(moved_tasks)
-    write_markdown(file_path, data)
-    print(f"Moved {len(moved_tasks)} unchecked tasks to {today}.")
+    # Determine the most recent file based on filename order
+    most_recent_file = os.path.join(year_dir, md_files[-1])
+    most_recent_data = file_data[most_recent_file]
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Ensure the latest file has today's entry
+    most_recent_day = create_new_day(most_recent_data, today)
+    most_recent_day["tasks"].extend(all_tasks)
+
+    # Write back only modified files
+    for file_path, data in file_data.items():
+        write_markdown(file_path, data)
+
+    print(
+        f"Moved {len(all_tasks)} unchecked tasks to {today} in {os.path.basename(most_recent_file)}."
+    )
 
 
 def list_tasks_by_tag(file_path: str, tag: str) -> None:
