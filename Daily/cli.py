@@ -53,5 +53,8 @@ def parse_arguments():
         action="store_true",
         help="Move unchecked tasks to the most recent day",
     )
+    # parser.add_argument(
+    #     "-sync", "--sync-json", action="store_true", help="Sync markdown tasks to JSON"
+    # )
 
     return parser.parse_args()

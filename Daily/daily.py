@@ -4,10 +4,9 @@
 # daily.py
 #
 # Description:
-#   This script manages a daily notes file in markdown format. It allows users
-#   to add tasks, notes, toggle task completion, list unfinished tasks, list
-#   completed tasks, move unchecked tasks to the most recent day, and open the
-#   file in an editor or a rendered markdown viewer.
+#   This script manages a daily notes markdown file. You can add tasks and notes to a day,
+#   mark a note as completed, list unfinished or finished tasks, move unfinished tasks to
+#   the current day, and open the file in an editor or a rendered markdown viewer.
 #
 # Usage:
 #   python daily.py [OPTIONS]
@@ -34,7 +33,11 @@
 
 import os
 from datetime import datetime
+from sync import sync_year_json
 from parsing import parse_markdown
+from notes import interactive_add_note
+from cli import parse_arguments
+from editor import open_file_in_vim, open_file_in_browser
 from tasks import (
     check_off_task,
     list_unfinished_tasks,
@@ -44,12 +47,10 @@ from tasks import (
     move_unchecked,
     interactive_add_task,
 )
-from notes import interactive_add_note
-from cli import parse_arguments
-from editor import open_file_in_vim, open_file_in_browser
 
 # Constants for directories and file paths
 BASE_DIR: str = os.path.expanduser("~/Notes/Daily")
+
 CURRENT_DATE: str = datetime.now().strftime("%Y-%m-%d")
 CURRENT_DAY: str = datetime.now().strftime("%a")
 CURRENT_YEAR: str = datetime.now().strftime("%Y")
@@ -82,6 +83,7 @@ if __name__ == "__main__":
         "open": lambda: open_file_in_browser(FILE_PATH),
         "task": lambda: interactive_add_task(FILE_PATH),
         "update": lambda: move_unchecked(FILE_PATH),
+        # "sync_json": lambda: sync_year_json(CURRENT_YEAR),
     }
 
     for cmd, func in COMMANDS.items():
