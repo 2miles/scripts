@@ -92,13 +92,13 @@ def list_unfinished_tasks(file_path: str) -> None:
     task_counter: int = 1
     print()
     print(
-        "****************************************************************************"
+        "*******************************************************************************"
     )
     print(
-        "|                          All Unfinished Tasks                            |"
+        "|                           All Unfinished Tasks                              |"
     )
     print(
-        "****************************************************************************"
+        "*******************************************************************************"
     )
     print()
     for day in data:
@@ -109,7 +109,7 @@ def list_unfinished_tasks(file_path: str) -> None:
                     truncated_name = truncated_name + "..."
 
                 unfinished_tasks.append(
-                    f"{task_counter}.  {task['tag']:<8}   {truncated_name:<48}   {task['started_date']}"
+                    f"{task_counter:<3}  {task['tag']:<10}   {truncated_name:<48}   {task['started_date']}"
                 )
                 task_counter += 1
 
