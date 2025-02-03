@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import re
 from typing import List, Dict, Any, Optional
@@ -92,10 +93,10 @@ def parse_markdown(file_path: str) -> List[Dict[str, Any]]:
 
 
 def write_markdown(file_path: str, data: List[Dict]) -> None:
-    """Write structured task and note data back to a markdown file while preserving formatting."""
+    """Write structured task and note data back to a markdown file."""
     with open(file_path, "w") as file:
         for day in data:
-            file.write(f"\n## {day['date']}\n\n")
+            file.write(f"\n## {day['date']}\n\n")  # No reformatting needed
 
             if day["tasks"]:
                 file.write("### Tasks\n\n")
@@ -108,9 +109,10 @@ def write_markdown(file_path: str, data: List[Dict]) -> None:
                         if task["tag"]
                         else task["name"]
                     )
+
                     # Convert started_date from YYYY-MM-DD to (MM-DD)
                     if task["started_date"]:
-                        formatted_date = f"({task['started_date'][5:]})"  # Extract MM-DD from YYYY-MM-DD
+                        formatted_date = f"({task['started_date'][5:]})"
                         task_name += f" {formatted_date}"
 
                     file.write(f"- {status} {task_name}\n")

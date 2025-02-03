@@ -11,10 +11,18 @@ CURRENT_DAY: str = datetime.now().strftime("%a")
 
 def create_new_day(data: List[Dict], date: str) -> Dict:
     """Ensure today's section exists in the data."""
+
+    # Always store the date in YYYY-MM-DD Day format
+    date_obj = datetime.strptime(date, "%Y-%m-%d")
+    formatted_date = date_obj.strftime("%Y-%m-%d %a")  # "2025-02-01 Sat"
+
+    # Check if this formatted date already exists in the data
     for day in data:
-        if day["date"] == date:
-            return day
-    new_day = {"date": date, "tasks": [], "notes": ""}
+        if day["date"] == formatted_date:
+            return day  # Return the existing entry
+
+    # If not found, create a new entry
+    new_day = {"date": formatted_date, "tasks": [], "notes": ""}
     data.append(new_day)
     return new_day
 
@@ -22,8 +30,7 @@ def create_new_day(data: List[Dict], date: str) -> Dict:
 def add_checkbox(file_path: str, task_name: str) -> None:
     """Add a new checkbox under today's '### Tasks' section."""
     data = parse_markdown(file_path)
-    today = f"{CURRENT_DATE} {CURRENT_DAY}"
-    day = create_new_day(data, today)
+    day = create_new_day(data, CURRENT_DATE)
 
     # Extract tag if task starts with backticks (e.g.,)
     tag_match = re.match(r"`(.*?)`\s*(.*)", task_name)
@@ -148,81 +155,6 @@ def list_completed_tasks(file_path: str) -> None:
         print(output)
 
 
-# def move_unchecked(file_path: str) -> None:
-#     """Move all unchecked tasks to the most recent date."""
-#     data = parse_markdown(file_path)
-#     today = f"{CURRENT_DATE} {CURRENT_DAY}"
-#     most_recent_day = create_new_day(data, today)
-
-#     moved_tasks: List[Dict] = []
-#     for day in data:
-#         if day["date"] != today:
-#             unchecked = [task for task in day["tasks"] if not task["completed"]]
-#             moved_tasks.extend(unchecked)
-#             day["tasks"] = [task for task in day["tasks"] if task["completed"]]
-
-#     if not moved_tasks:
-#         print("No unchecked tasks to move.")
-#         return
-
-#     most_recent_day["tasks"].extend(moved_tasks)
-#     write_markdown(file_path, data)
-#     print(f"Moved {len(moved_tasks)} unchecked tasks to {today}.")
-
-
-# def move_unchecked(file_path: str) -> None:
-#     """Move all unchecked tasks from all monthly files in a given year directory to the most recent date."""
-
-#     # Get the directory from the file path (e.g., '/Users/miles/Notes/Daily/2025/')
-#     year_dir = os.path.dirname(file_path)
-
-#     if not os.path.isdir(year_dir):
-#         print(f"Error: {year_dir} is not a directory.")
-#         return
-
-#     all_tasks = []
-#     file_paths = []
-
-#     # Get all markdown files in the directory
-#     for file_name in sorted(os.listdir(year_dir)):  # Ensure chronological order
-#         file_path = os.path.join(year_dir, file_name)
-
-#         # Ensure we're working with `.md` files
-#         if file_name.endswith(".md") and os.path.isfile(file_path):
-#             data = parse_markdown(file_path)
-#             file_paths.append((file_path, data))
-
-#             for day in data:
-#                 unchecked = [task for task in day["tasks"] if not task["completed"]]
-#                 all_tasks.extend(unchecked)
-#                 day["tasks"] = [task for task in day["tasks"] if task["completed"]]
-
-#     if not all_tasks:
-#         print("No unchecked tasks to move.")
-#         return
-
-#     # Find the most recent file
-#     today = datetime.now().strftime("%Y-%m-%d")
-#     most_recent_file, most_recent_data = file_paths[
-#         -1
-#     ]  # Last file (assumed to be most recent)
-#     most_recent_day = create_new_day(most_recent_data, today)
-
-#     # Move unchecked tasks to the most recent date
-#     most_recent_day["tasks"].extend(all_tasks)
-
-#     # Write modified data back to their respective files
-#     for file_path, data in file_paths:
-#         write_markdown(file_path, data)
-
-#     print(f"Moved {len(all_tasks)} unchecked tasks to {today} in {most_recent_file}.")
-
-
-import os
-import re
-from datetime import datetime
-from typing import List, Dict
-
 # Regex pattern for valid filenames (e.g., 2025_1_jan.md, 2025_12_dec.md)
 VALID_FILENAME_PATTERN = re.compile(r"^\d{4}_\d{1,2}_[a-z]+\.md$", re.IGNORECASE)
 
@@ -255,29 +187,40 @@ def move_unchecked(year_dir: str) -> None:
 
         for day in data:
             unchecked_tasks = [task for task in day["tasks"] if not task["completed"]]
-            all_tasks.extend(unchecked_tasks)
-            # Keep only completed tasks
+
+            # ✅ Prevent duplicates before adding to all_tasks
+            for task in unchecked_tasks:
+                if task not in all_tasks:
+                    all_tasks.append(task)
+
+            # ✅ Remove only unchecked tasks from previous days
             day["tasks"] = [task for task in day["tasks"] if task["completed"]]
 
     if not all_tasks:
         print("No unchecked tasks to move.")
         return
 
-    # Determine the most recent file based on filename order
+    # Move unchecked tasks to today's date
+    today = datetime.now().strftime("%Y-%m-%d")  # Use basic format
     most_recent_file = os.path.join(year_dir, md_files[-1])
     most_recent_data = file_data[most_recent_file]
-    today = datetime.now().strftime("%Y-%m-%d")
 
-    # Ensure the latest file has today's entry
-    most_recent_day = create_new_day(most_recent_data, today)
-    most_recent_day["tasks"].extend(all_tasks)
+    most_recent_day = create_new_day(most_recent_data, today)  # It will auto-format
+
+    # ✅ Prevent duplicates from being added again
+    existing_task_names = {task["name"] for task in most_recent_day["tasks"]}
+    unique_tasks = [
+        task for task in all_tasks if task["name"] not in existing_task_names
+    ]
+
+    most_recent_day["tasks"].extend(unique_tasks)  # ✅ Only add unique tasks
 
     # Write back only modified files
     for file_path, data in file_data.items():
         write_markdown(file_path, data)
 
     print(
-        f"Moved {len(all_tasks)} unchecked tasks to {today} in {os.path.basename(most_recent_file)}."
+        f"Moved {len(unique_tasks)} unchecked tasks to {most_recent_day['date']} in {os.path.basename(most_recent_file)}."
     )
 
 
