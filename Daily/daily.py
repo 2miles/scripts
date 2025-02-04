@@ -31,9 +31,6 @@
 ################################################################################
 
 
-import os
-from datetime import datetime
-from sync import sync_year_json
 from parsing import parse_markdown
 from notes import interactive_add_note
 from cli import parse_arguments
@@ -47,45 +44,37 @@ from tasks import (
     move_unchecked,
     interactive_add_task,
 )
-
-# Constants for directories and file paths
-
-CURRENT_DATE: str = datetime.now().strftime("%Y-%m-%d")
-CURRENT_DAY: str = datetime.now().strftime("%a")
-CURRENT_YEAR: str = datetime.now().strftime("%Y")
-CURRENT_MONTH: str = datetime.now().strftime("%m").lstrip("0")
-CURRENT_MONTH_NAME: str = datetime.now().strftime("%b").lower()
-
-BASE_DIR: str = os.path.expanduser("~/Notes/Daily")
-CURRENT_YEAR_DIR = os.path.join(BASE_DIR, CURRENT_YEAR)
-
-# Path to the current month's file
-FILE_PATH: str = os.path.join(
-    BASE_DIR, CURRENT_YEAR, f"{CURRENT_YEAR}_{CURRENT_MONTH}_{CURRENT_MONTH_NAME}.md"
+from date_paths import (
+    get_current_year,
+    get_current_month,
+    get_current_month_name,
+    get_current_year_dir,
+    get_file_path,
+    get_json_file_path,
 )
 
-# Ensure the directories and file exist
-os.makedirs(os.path.dirname(FILE_PATH), exist_ok=True)
-if not os.path.exists(FILE_PATH):
-    with open(FILE_PATH, "w") as file:
-        pass
+year = get_current_year()
+month = get_current_month()
+month_name = get_current_month_name()
+file_path = get_file_path()
+json_path = get_json_file_path()
+year_dir = get_current_year_dir()
+
 
 if __name__ == "__main__":
     args = parse_arguments()
-    data = parse_markdown(FILE_PATH)
 
     COMMANDS = {
-        "check": lambda: check_off_task(FILE_PATH, args.check),
-        "edit": lambda: open_file_in_vim(FILE_PATH),
-        "list": lambda: list_unfinished_tasks(FILE_PATH),
-        "list_completed": lambda: list_completed_tasks(FILE_PATH),
-        "list_tag": lambda: list_tasks_by_tag(FILE_PATH, args.list_tag),
-        "list_tags": lambda: list_task_tags(FILE_PATH),
-        "note": lambda: interactive_add_note(FILE_PATH),
-        "open": lambda: open_file_in_browser(FILE_PATH),
-        "task": lambda: interactive_add_task(FILE_PATH),
-        "update": lambda: move_unchecked(CURRENT_YEAR_DIR),
-        # "sync_json": lambda: sync_year_json(CURRENT_YEAR),
+        "check": lambda: check_off_task(file_path, args.check),
+        "edit": lambda: open_file_in_vim(file_path),
+        "list": lambda: list_unfinished_tasks(json_path),
+        "list_completed": lambda: list_completed_tasks(file_path),
+        "list_tag": lambda: list_tasks_by_tag(file_path, args.list_tag),
+        "list_tags": lambda: list_task_tags(file_path),
+        "note": lambda: interactive_add_note(file_path),
+        "open": lambda: open_file_in_browser(file_path),
+        "task": lambda: interactive_add_task(file_path),
+        "update": lambda: move_unchecked(year_dir),
     }
 
     for cmd, func in COMMANDS.items():

@@ -9,14 +9,14 @@ Eventually, this system could evolve into a web-based interface with a database,
 ```
 ~/Notes/Daily/
     ├── 2025/
-    │   ├── tasks_2025.json  # Main JSON file for the year
-    │   ├── 2025_1_jan.md    # January tasks & notes
-    │   ├── 2025_2_feb.md    # February tasks & notes
-    │   ├── 2025_3_mar.md
+    │   ├── 2025_01_jan.json  # Json file for january
+    │   ├── 2025_01_jan.md    # January tasks & notes
+    │   ├── 2025_02_feb.json
+    │   ├── 2025_02_feb.md
     │   └── ...
     ├── 2026/
-    │   ├── tasks_2026.json
-    │   ├── 2026_1_jan.md
+    │   ├── 2026_01_jan.json
+    │   ├── 2026_01_jan.md
     │   └── ...
 ```
 
