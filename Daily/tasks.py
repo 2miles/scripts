@@ -1,7 +1,6 @@
 import os
 import re
 from parsing import parse_markdown, write_markdown
-from datetime import datetime
 from typing import List, Dict
 from json_handler import load_json, save_json
 
@@ -135,10 +134,11 @@ def list_unfinished_tasks(json_path: str, silent: bool = False) -> List[tuple]:
     return unfinished_tasks
 
 
-def list_completed_tasks(file_path: str) -> None:
-    """List all completed tasks across all days, including tags and started dates."""
-    data = parse_markdown(file_path)
-    completed_tasks: List[str] = []
+def list_completed_tasks(json_path: str) -> None:
+    """List all completed tasks across all days from JSON."""
+
+    data = load_json(json_path)
+    completed_tasks = []
 
     for day in data:
         day_tasks = [

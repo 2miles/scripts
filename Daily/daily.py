@@ -68,7 +68,7 @@ if __name__ == "__main__":
         "check": lambda: check_off_task(file_path, args.check),
         "edit": lambda: open_file_in_vim(file_path),
         "list": lambda: list_unfinished_tasks(json_path),
-        "list_completed": lambda: list_completed_tasks(file_path),
+        "list_completed": lambda: list_completed_tasks(json_path),
         "list_tag": lambda: list_tasks_by_tag(file_path, args.list_tag),
         "list_tags": lambda: list_task_tags(file_path),
         "note": lambda: interactive_add_note(file_path),
