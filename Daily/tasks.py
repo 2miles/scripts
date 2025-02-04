@@ -3,26 +3,27 @@ import re
 from parsing import parse_markdown, write_markdown
 from datetime import datetime
 from typing import List, Dict
+from json_handler import load_json, save_json
 
-# Constants for date formatting
-CURRENT_DATE: str = datetime.now().strftime("%Y-%m-%d")
-CURRENT_DAY: str = datetime.now().strftime("%a")
+from date_paths import (
+    get_current_date,
+    get_current_date_day,
+)
+
+date = get_current_date()
+date_day = get_current_date_day()
 
 
 def create_new_day(data: List[Dict], date: str) -> Dict:
     """Ensure today's section exists in the data."""
 
-    # Always store the date in YYYY-MM-DD Day format
-    date_obj = datetime.strptime(date, "%Y-%m-%d")
-    formatted_date = date_obj.strftime("%Y-%m-%d %a")  # "2025-02-01 Sat"
-
     # Check if this formatted date already exists in the data
     for day in data:
-        if day["date"] == formatted_date:
+        if day["date"] == date_day:
             return day  # Return the existing entry
 
     # If not found, create a new entry
-    new_day = {"date": formatted_date, "tasks": [], "notes": ""}
+    new_day = {"date": date, "tasks": [], "notes": ""}
     data.append(new_day)
     return new_day
 
@@ -30,7 +31,7 @@ def create_new_day(data: List[Dict], date: str) -> Dict:
 def add_checkbox(file_path: str, task_name: str) -> None:
     """Add a new checkbox under today's '### Tasks' section."""
     data = parse_markdown(file_path)
-    day = create_new_day(data, CURRENT_DATE)
+    day = create_new_day(data, date)
 
     # Extract tag if task starts with backticks (e.g.,)
     tag_match = re.match(r"`(.*?)`\s*(.*)", task_name)
@@ -41,14 +42,14 @@ def add_checkbox(file_path: str, task_name: str) -> None:
         tag = "UNTAGGED"
 
     # Format task with start date
-    task_with_date = f"{task_name} -- ({CURRENT_DATE[5:]})"
+    task_with_date = f"{task_name} -- ({date[5:]})"
 
     # Append task with all required fields
     day["tasks"].append(
         {
             "name": task_name,
             "completed": False,
-            "started_date": CURRENT_DATE,  # YYYY-MM-DD
+            "started_date": date,  # YYYY-MM-DD
             "tag": tag,  # Always there
         }
     )
@@ -67,57 +68,71 @@ def interactive_add_task(file_path: str) -> None:
     add_checkbox(file_path, task)
 
 
-def check_off_task(file_path: str, task_number: int) -> None:
-    """Mark a specific task as completed."""
-    data = parse_markdown(file_path)
-    task_counter = 1
+def check_off_task(json_path: str, task_number: int) -> None:
+    """Mark a specific task as completed using the task name instead of a dynamic number."""
 
+    data = load_json(json_path)
+    unfinished_tasks = list_unfinished_tasks(json_path, True)
+
+    if task_number < 1 or task_number > len(unfinished_tasks):
+        print("Invalid task number.")
+        return
+    selected_task_name = unfinished_tasks[task_number - 1][1]
+    # Search for this task in JSON and mark it as complete
     for day in data:
         for task in day["tasks"]:
-            if not task["completed"]:
-                if task_counter == task_number:
-                    task["completed"] = True
-                    write_markdown(file_path, data)
-                    print(f"Task {task_number} has been checked off: {task['name']}")
-                    return
-                task_counter += 1
+            if task["name"] == selected_task_name:
+                task["completed"] = True
+                save_json(json_path, data)  # ✅ Save the updated JSON
+                print(f"Task {task_number} has been checked off: {task['name']}")
+                return
 
     print(f"Task {task_number} not found.")
 
 
-def list_unfinished_tasks(file_path: str) -> None:
-    """List all unfinished tasks across all days."""
-    data = parse_markdown(file_path)
-    unfinished_tasks: List[str] = []
-    task_counter: int = 1
-    print()
-    print(
-        "*******************************************************************************"
-    )
-    print(
-        "|                           All Unfinished Tasks                              |"
-    )
-    print(
-        "*******************************************************************************"
-    )
-    print()
+def list_unfinished_tasks(json_path: str, silent: bool = False) -> List[tuple]:
+    """
+    List all unfinished tasks across all days from JSON.
+    If `silent=True`, it returns the list without printing.
+    """
+
+    data = load_json(json_path)
+    unfinished_tasks = []
+    task_counter = 1
+
+    if not silent:
+        print(
+            "\n*******************************************************************************"
+        )
+        print(
+            "|                           All Unfinished Tasks                              |"
+        )
+        print(
+            "*******************************************************************************\n"
+        )
+
     for day in data:
         for task in day["tasks"]:
             if not task["completed"]:
                 truncated_name = task["name"][:45]
-                if len(truncated_name) > 44:
-                    truncated_name = truncated_name + "..."
+                if len(task["name"]) > 45:
+                    truncated_name += "..."
 
                 unfinished_tasks.append(
-                    f"{task_counter:<3}  {task['tag']:<10}   {truncated_name:<48}   {task['started_date']}"
-                )
+                    (task_counter, task["name"])
+                )  # ✅ Structured reference
+
+                if not silent:
+                    print(
+                        f"{task_counter:<3}  {task['tag']:<10}   {truncated_name:<48}   {task['started_date']}"
+                    )
+
                 task_counter += 1
 
-    if not unfinished_tasks:
+    if not unfinished_tasks and not silent:
         print("No unfinished tasks.")
-        return
 
-    print("\n".join(unfinished_tasks))
+    return unfinished_tasks
 
 
 def list_completed_tasks(file_path: str) -> None:
@@ -201,11 +216,10 @@ def move_unchecked(year_dir: str) -> None:
         return
 
     # Move unchecked tasks to today's date
-    today = datetime.now().strftime("%Y-%m-%d")  # Use basic format
     most_recent_file = os.path.join(year_dir, md_files[-1])
     most_recent_data = file_data[most_recent_file]
 
-    most_recent_day = create_new_day(most_recent_data, today)  # It will auto-format
+    most_recent_day = create_new_day(most_recent_data, date)  # It will auto-format
 
     # ✅ Prevent duplicates from being added again
     existing_task_names = {task["name"] for task in most_recent_day["tasks"]}
