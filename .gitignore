@@ -30,3 +30,6 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# This is where the old working Daily app lives.
+/Daily_prod/
