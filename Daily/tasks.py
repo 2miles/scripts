@@ -1,8 +1,8 @@
+from collections import defaultdict
 import os
-import pprint
 import re
 from parsing import parse_markdown, write_markdown
-from typing import List, Dict
+from typing import List, Dict, Set
 from json_handler import load_json, save_json
 
 from date_paths import (
@@ -282,10 +282,10 @@ def print_tasks_by_tag(json_path: str, tag: str) -> None:
     print("\n".join(output))
 
 
-def list_task_tags(file_path: str) -> None:
+def list_task_tags(json_path: str) -> None:
     """List all unique tags used in tasks."""
-    data = parse_markdown(file_path)
-    tags = set()
+    data = load_json(json_path)
+    tags: Set[str] = set()
     for day in data:
         for task in day["tasks"]:
             match = re.match(r"`([^`]*)`", task["name"])
@@ -294,5 +294,44 @@ def list_task_tags(file_path: str) -> None:
     if tags:
         print("\nTags in use:")
         print("\n".join(sorted(tags)))
+    else:
+        print("No tags found.")
+
+
+# def get_all_task_tags(json_path: str) -> List[str]:
+#     """Retrieve all unique tags used in tasks."""
+#     data = load_json(json_path)
+#     tags: Set[str] = set()
+#     tags = {
+#         task["tag"]
+#         for day in data
+#         for task in day["tasks"]
+#         if "tag" in task and task["tag"]
+#     }
+#     return sorted(tags)
+
+
+def get_all_task_tags(json_path: str) -> Dict[str, int]:
+    """Retrieve all unique tags used in tasks and count occurrences."""
+    data = load_json(json_path)
+    tag_counts: Dict[str, int] = defaultdict(int)
+
+    for day in data:
+        for task in day.get("tasks", []):  # Use .get() to avoid KeyErrors
+            if "tag" in task and task["tag"]:
+                tag_counts[task["tag"]] += 1
+
+    return dict(sorted(tag_counts.items()))  # Sort alphabetically by tag
+
+
+def print_all_task_tags(json_path: str) -> None:
+    """Print all unique tags and their counts in a structured format."""
+    tags = get_all_task_tags(json_path)
+
+    if tags:
+        print("\nTags in use:\n")
+        pad_char = "."
+        for tag, count in tags.items():
+            print(f"{tag:{pad_char}<16} {count}")  # Prints each tag and its count
     else:
         print("No tags found.")

@@ -38,6 +38,7 @@ from editor import open_file_in_vim, open_file_in_browser
 from tasks import (
     check_off_task,
     list_unfinished_tasks,
+    print_all_task_tags,
     print_completed_tasks,
     print_tasks_by_tag,
     list_task_tags,
@@ -70,7 +71,7 @@ if __name__ == "__main__":
         "list": lambda: list_unfinished_tasks(json_path),
         "list_completed": lambda: print_completed_tasks(json_path),
         "list_tag": lambda: print_tasks_by_tag(json_path, args.list_tag),
-        "list_tags": lambda: list_task_tags(file_path),
+        "list_tags": lambda: print_all_task_tags(json_path),
         "note": lambda: interactive_add_note(file_path),
         "open": lambda: open_file_in_browser(file_path),
         "task": lambda: interactive_add_task(file_path),
