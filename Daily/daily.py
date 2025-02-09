@@ -31,35 +31,25 @@
 ################################################################################
 
 
-from parsing import parse_markdown
 from notes import interactive_add_note
 from cli import parse_arguments
 from editor import open_file_in_vim, open_file_in_browser
 from tasks import (
     check_off_task,
-    list_unfinished_tasks,
-    print_all_task_tags,
+    print_unfinished_tasks,
+    print_tags,
     print_completed_tasks,
     print_tasks_by_tag,
-    list_task_tags,
     move_unchecked,
     interactive_add_task,
 )
 from date_paths import (
-    get_current_year,
-    get_current_month,
-    get_current_month_name,
-    get_current_year_dir,
     get_file_path,
     get_json_file_path,
 )
 
-year = get_current_year()
-month = get_current_month()
-month_name = get_current_month_name()
 file_path = get_file_path()
 json_path = get_json_file_path()
-year_dir = get_current_year_dir()
 
 
 if __name__ == "__main__":
@@ -68,14 +58,16 @@ if __name__ == "__main__":
     COMMANDS = {
         "check": lambda: check_off_task(file_path, args.check),
         "edit": lambda: open_file_in_vim(file_path),
-        "list": lambda: list_unfinished_tasks(json_path),
-        "list_completed": lambda: print_completed_tasks(json_path),
+        "list": lambda: print_unfinished_tasks(),
+        "list_completed": lambda: print_completed_tasks(
+            json_path
+        ),  ## TODO optional file path in cli
         "list_tag": lambda: print_tasks_by_tag(json_path, args.list_tag),
-        "list_tags": lambda: print_all_task_tags(json_path),
+        "list_tags": lambda: print_tags(json_path),
         "note": lambda: interactive_add_note(file_path),
         "open": lambda: open_file_in_browser(file_path),
         "task": lambda: interactive_add_task(file_path),
-        "update": lambda: move_unchecked(year_dir),
+        "update": lambda: move_unchecked(),
     }
 
     for cmd, func in COMMANDS.items():

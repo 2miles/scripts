@@ -2,25 +2,25 @@ from collections import defaultdict
 import os
 import re
 from parsing import parse_markdown, write_markdown
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 from json_handler import load_json, save_json
 
 from date_paths import (
     get_current_date,
     get_current_date_day,
+    get_file_path,
+    get_json_file_path,
+    get_prev_json_file_path,
 )
-
-date = get_current_date()
-date_day = get_current_date_day()
 
 
 def create_new_day(data: List[Dict], date: str) -> Dict:
     """
     Ensure today's section exists in the data.
     """
-    # Check if this formatted date already exists in the data
+    # Check if this formatted date already exists in the json
     for day in data:
-        if day["date"] == date_day:
+        if day["date"] == get_current_date_day():
             return day  # Return the existing entry
 
     # If not found, create a new entry
@@ -29,8 +29,10 @@ def create_new_day(data: List[Dict], date: str) -> Dict:
     return new_day
 
 
+## NEEDS TO BE CONVERTED
 def add_checkbox(file_path: str, task_name: str) -> None:
     """Add a new checkbox under today's '### Tasks' section."""
+    date = get_current_date()
     data = parse_markdown(file_path)
     day = create_new_day(data, date)
 
@@ -59,6 +61,7 @@ def add_checkbox(file_path: str, task_name: str) -> None:
     print(f"Added task: {task_with_date[:32]}...")
 
 
+## NEEDS TO BE CONVERTED
 def interactive_add_task(file_path: str) -> None:
     """Prompt the user for a task interactively."""
     task = input("Task: ").strip()
@@ -69,6 +72,7 @@ def interactive_add_task(file_path: str) -> None:
     add_checkbox(file_path, task)
 
 
+## NEEDS TO BE CONVERTED
 def check_off_task(json_path: str, task_number: int) -> None:
     """Mark a specific task as completed using the task name instead of a dynamic number."""
 
@@ -91,41 +95,39 @@ def check_off_task(json_path: str, task_number: int) -> None:
     print(f"Task {task_number} not found.")
 
 
-def list_unfinished_tasks(json_path: str, silent: bool = False) -> List[tuple]:
-    """
-    List all unfinished tasks across all days from JSON.
-    If `silent=True`, it returns the list without printing.
-    """
-    data = load_json(json_path)
+def get_unfinished_tasks() -> List[Tuple[int, str, str, str]]:
+    """Retrieve all unfinished tasks from JSON."""
+    data = load_json(get_json_file_path())
     unfinished_tasks = []
     task_count = 1
 
-    if not silent:
-        print(
-            "\n*******************************************************************************"
-        )
-        print(
-            "|                           All Unfinished Tasks                              |"
-        )
-        print(
-            "*******************************************************************************\n"
-        )
     for day in data:
         for task in day["tasks"]:
             if not task["completed"]:
                 short_name = task["name"][:45]
                 if len(task["name"]) > 45:
                     short_name += "..."
-                unfinished_tasks.append((task_count, task["name"]))
-                if not silent:
-                    print(
-                        f"{task_count:<3}  {task['tag']:<10}  {short_name:<48}  {task['started_date']}"
-                    )
+                unfinished_tasks.append(
+                    (task_count, task["tag"], short_name, task["started_date"])
+                )
                 task_count += 1
 
-    if not unfinished_tasks and not silent:
-        print("No unfinished tasks.")
     return unfinished_tasks
+
+
+def print_unfinished_tasks():
+    """Print all unfinished tasks."""
+    unfinished_tasks = get_unfinished_tasks()
+
+    print()
+    print("                           All Unfinished Tasks")
+    print()
+    if not unfinished_tasks:
+        print("No unfinished tasks.")
+        return
+
+    for task_count, tag, short_name, started_date in unfinished_tasks:
+        print(f"{task_count:<3}  {tag:<10}  {short_name:<48}  {started_date}")
 
 
 def get_completed_tasks(json_path: str) -> list:
@@ -150,7 +152,7 @@ def get_completed_tasks(json_path: str) -> list:
         if day_tasks:
             completed_tasks.append({"date": day["date"], "tasks": day_tasks})
 
-    return completed_tasks  # ✅ Returns structured data, not formatted output
+    return completed_tasks
 
 
 def print_completed_tasks(json_path: str) -> None:
@@ -175,72 +177,59 @@ def print_completed_tasks(json_path: str) -> None:
     print("\n".join(output))
 
 
-# Regex pattern for valid filenames (e.g., 2025_1_jan.md, 2025_12_dec.md)
-VALID_FILENAME_PATTERN = re.compile(r"^\d{4}_\d{1,2}_[a-z]+\.md$", re.IGNORECASE)
+def move_unchecked() -> None:
+    """Move all unfinished tasks from the current and previous month to today's date."""
+    today = get_current_date_day()
+    file_path = get_file_path()
+    current_json_path = get_json_file_path()
+    prev_json_path = get_prev_json_file_path()
 
+    unchecked_tasks = []
 
-def move_unchecked(year_dir: str) -> None:
-    """Move all unchecked tasks from all valid monthly files in a given year directory to the most recent date."""
-
-    if not os.path.isdir(year_dir):
-        print(f"Error: '{year_dir}' is not a valid directory.")
+    # Load current and previous months JSON and collect unfinished tasks
+    if os.path.exists(current_json_path):
+        current_data = load_json(current_json_path)
+        for day in current_data:
+            unchecked_tasks.extend(
+                [task for task in day["tasks"] if not task["completed"]]
+            )
+    else:
+        print(f"Warning: Current month JSON file not found: {current_json_path}")
+        current_data = []
+    if prev_json_path and os.path.exists(prev_json_path):
+        prev_data = load_json(prev_json_path)
+        for day in prev_data:
+            unchecked_tasks.extend(
+                [task for task in day["tasks"] if not task["completed"]]
+            )
+    if not unchecked_tasks:
+        print("No unfinished tasks to move.")
         return
 
-    all_tasks = []
-    file_data = {}
+    # ✅ Find or create today's section in JSON
+    today_section = next((d for d in current_data if d["date"] == today), None)
+    if not today_section:
+        today_section = {"date": today, "tasks": [], "notes": ""}
+        current_data.append(today_section)
 
-    # Get markdown files that match the expected format
-    md_files = sorted(
-        [f for f in os.listdir(year_dir) if VALID_FILENAME_PATTERN.match(f)],
-        key=lambda f: f.lower(),  # Sort alphabetically, assuming chronological naming
-    )
-
-    if not md_files:
-        print(f"No valid markdown files found in {year_dir}.")
-        return
-
-    # Process each file and collect unchecked tasks
-    for file_name in md_files:
-        file_path = os.path.join(year_dir, file_name)
-        data = parse_markdown(file_path)
-        file_data[file_path] = data  # Store parsed data for later writing
-
-        for day in data:
-            unchecked_tasks = [task for task in day["tasks"] if not task["completed"]]
-
-            # ✅ Prevent duplicates before adding to all_tasks
-            for task in unchecked_tasks:
-                if task not in all_tasks:
-                    all_tasks.append(task)
-
-            # ✅ Remove only unchecked tasks from previous days
-            day["tasks"] = [task for task in day["tasks"] if task["completed"]]
-
-    if not all_tasks:
-        print("No unchecked tasks to move.")
-        return
-
-    # Move unchecked tasks to today's date
-    most_recent_file = os.path.join(year_dir, md_files[-1])
-    most_recent_data = file_data[most_recent_file]
-
-    most_recent_day = create_new_day(most_recent_data, date)  # It will auto-format
-
-    # ✅ Prevent duplicates from being added again
-    existing_task_names = {task["name"] for task in most_recent_day["tasks"]}
+    # ✅ Prevent duplicate tasks
+    existing_task_names = {task["name"] for task in today_section["tasks"]}
     unique_tasks = [
-        task for task in all_tasks if task["name"] not in existing_task_names
+        task for task in unchecked_tasks if task["name"] not in existing_task_names
     ]
 
-    most_recent_day["tasks"].extend(unique_tasks)  # ✅ Only add unique tasks
+    today_section["tasks"].extend(unique_tasks)
 
-    # Write back only modified files
-    for file_path, data in file_data.items():
-        write_markdown(file_path, data)
+    # ✅ Remove unfinished tasks from previous days
+    for day in current_data:
+        if day["date"] != today:
+            day["tasks"] = [task for task in day["tasks"] if task["completed"]]
 
-    print(
-        f"Moved {len(unique_tasks)} unchecked tasks to {most_recent_day['date']} in {os.path.basename(most_recent_file)}."
-    )
+    save_json(current_json_path, current_data)
+    if prev_data:
+        save_json(prev_json_path, prev_data)
+    write_markdown(file_path, current_data)
+    print(f"Moved {len(unique_tasks)} unfinished tasks to today.")
 
 
 def get_tasks_by_tag(json_path: str, tag: str) -> list:
@@ -272,9 +261,7 @@ def print_tasks_by_tag(json_path: str, tag: str) -> None:
     if not tagged_tasks:
         print(f"No tasks found with tag `{tag}`.")
         return
-
     output = [f"\nTasks with tag `{tag}`:\n"]
-
     for day in tagged_tasks:
         for task in day["tasks"]:
             status = "[x]" if task["completed"] else "[ ]"
@@ -282,56 +269,29 @@ def print_tasks_by_tag(json_path: str, tag: str) -> None:
     print("\n".join(output))
 
 
-def list_task_tags(json_path: str) -> None:
-    """List all unique tags used in tasks."""
-    data = load_json(json_path)
-    tags: Set[str] = set()
-    for day in data:
-        for task in day["tasks"]:
-            match = re.match(r"`([^`]*)`", task["name"])
-            if match:
-                tags.add(match.group(1))
-    if tags:
-        print("\nTags in use:")
-        print("\n".join(sorted(tags)))
-    else:
-        print("No tags found.")
-
-
-# def get_all_task_tags(json_path: str) -> List[str]:
-#     """Retrieve all unique tags used in tasks."""
-#     data = load_json(json_path)
-#     tags: Set[str] = set()
-#     tags = {
-#         task["tag"]
-#         for day in data
-#         for task in day["tasks"]
-#         if "tag" in task and task["tag"]
-#     }
-#     return sorted(tags)
-
-
-def get_all_task_tags(json_path: str) -> Dict[str, int]:
-    """Retrieve all unique tags used in tasks and count occurrences."""
+def get_tags(json_path: str) -> Dict[str, int]:
+    """
+    Retrieve all unique tags used and their counts.
+    """
     data = load_json(json_path)
     tag_counts: Dict[str, int] = defaultdict(int)
-
     for day in data:
-        for task in day.get("tasks", []):  # Use .get() to avoid KeyErrors
+        for task in day.get("tasks", []):
             if "tag" in task and task["tag"]:
                 tag_counts[task["tag"]] += 1
 
     return dict(sorted(tag_counts.items()))  # Sort alphabetically by tag
 
 
-def print_all_task_tags(json_path: str) -> None:
-    """Print all unique tags and their counts in a structured format."""
-    tags = get_all_task_tags(json_path)
-
+def print_tags(json_path: str) -> None:
+    """
+    Print all unique tags and their counts.
+    """
+    tags = get_tags(json_path)
     if tags:
         print("\nTags in use:\n")
         pad_char = "."
         for tag, count in tags.items():
-            print(f"{tag:{pad_char}<16} {count}")  # Prints each tag and its count
+            print(f"{tag:{pad_char}<16} {count}")
     else:
         print("No tags found.")
