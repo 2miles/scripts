@@ -1,8 +1,8 @@
 from collections import defaultdict
 import os
 import re
-from parsing import parse_markdown, write_markdown
-from typing import List, Dict, Set, Tuple
+from parsing import write_markdown
+from typing import List, Dict, Tuple
 from json_handler import load_json, save_json
 
 from date_paths import (
@@ -18,25 +18,24 @@ def create_new_day(data: List[Dict], date: str) -> Dict:
     """
     Ensure today's section exists in the data.
     """
-    # Check if this formatted date already exists in the json
     for day in data:
         if day["date"] == get_current_date_day():
-            return day  # Return the existing entry
-
-    # If not found, create a new entry
+            return day
     new_day = {"date": date, "tasks": [], "notes": ""}
     data.append(new_day)
     return new_day
 
 
-## NEEDS TO BE CONVERTED
-def add_checkbox(file_path: str, task_name: str) -> None:
-    """Add a new checkbox under today's '### Tasks' section."""
+def add_checkbox(task_name: str) -> None:
+    """Add a new checkbox (i.e. task) under today's '### Tasks' section using a JSON-first approach."""
+    json_path = get_json_file_path()
+    file_path = get_file_path()
     date = get_current_date()
-    data = parse_markdown(file_path)
+    data = load_json(json_path)
+
     day = create_new_day(data, date)
 
-    # Extract tag if task starts with backticks (e.g.,)
+    # Extract tag if the task starts with backticks.
     tag_match = re.match(r"`(.*?)`\s*(.*)", task_name)
     if tag_match:
         tag = tag_match.group(1).strip()
@@ -44,32 +43,29 @@ def add_checkbox(file_path: str, task_name: str) -> None:
     else:
         tag = "UNTAGGED"
 
-    # Format task with start date
-    task_with_date = f"{task_name} -- ({date[5:]})"
-
-    # Append task with all required fields
     day["tasks"].append(
         {
             "name": task_name,
             "completed": False,
             "started_date": date,  # YYYY-MM-DD
-            "tag": tag,  # Always there
+            "tag": tag,
         }
     )
-
+    save_json(json_path, data)
     write_markdown(file_path, data)
-    print(f"Added task: {task_with_date[:32]}...")
+    print(f"Added task: {task_name[:32]}")
 
 
-## NEEDS TO BE CONVERTED
-def interactive_add_task(file_path: str) -> None:
-    """Prompt the user for a task interactively."""
+def prompt_for_task() -> None:
+    """
+    Prompt the user for a task interactively.
+    """
     task = input("Task: ").strip()
     if not task:
         print("Task cannot be empty. Aborting.")
         return
 
-    add_checkbox(file_path, task)
+    add_checkbox(task)
 
 
 def check_off_task(task_number: int) -> None:
@@ -124,7 +120,7 @@ def get_unfinished_tasks() -> List[Tuple[int, str, str, str]]:
     return unfinished_tasks
 
 
-def print_unfinished_tasks():
+def print_unfinished_tasks() -> None:
     """Print all unfinished tasks."""
     unfinished_tasks = get_unfinished_tasks()
 
@@ -141,7 +137,7 @@ def print_unfinished_tasks():
 
 def get_completed_tasks(json_path: str) -> list:
     """
-    Retrieve all completed tasks from JSON.
+    Retrieve all completed tasks from the current months JSON file.
     """
     data = load_json(json_path)
     completed_tasks = []
@@ -166,7 +162,7 @@ def get_completed_tasks(json_path: str) -> list:
 
 def print_completed_tasks(json_path: str) -> None:
     """
-    Print all completed tasks in a structured format.
+    Print all completed tasks in the current month's JSON file.
     """
     completed_tasks = get_completed_tasks(json_path)
     if not completed_tasks:
@@ -186,54 +182,78 @@ def print_completed_tasks(json_path: str) -> None:
     print("\n".join(output))
 
 
+def load_unfinished_tasks_from_data(data: list) -> list:
+    """
+    Extract all unfinished tasks from the given data (list of day dictionaries).
+    """
+    tasks = []
+    for day in data:
+        tasks.extend([task for task in day["tasks"] if not task["completed"]])
+    return tasks
+
+
+def get_or_create_today_section(data: list, today: str) -> dict:
+    """
+    Return the section corresponding to today's date in the data.
+    If not present, create a new section.
+    """
+    today_section = next((d for d in data if d["date"] == today), None)
+    if not today_section:
+        today_section = {"date": today, "tasks": [], "notes": ""}
+        data.append(today_section)
+    return today_section
+
+
+def remove_unfinished_from_previous_days(data: list, today: str) -> None:
+    """
+    For every day in data that is not today, remove tasks that are still unfinished.
+    """
+    for day in data:
+        if day["date"] != today:
+            day["tasks"] = [task for task in day["tasks"] if task["completed"]]
+
+
 def move_unchecked() -> None:
-    """Move all unfinished tasks from the current and previous month to today's date."""
+    """
+    Move all unfinished tasks from the current and previous month to today's date.
+    """
     today = get_current_date_day()
     file_path = get_file_path()
     current_json_path = get_json_file_path()
     prev_json_path = get_prev_json_file_path()
 
-    unchecked_tasks = []
-
-    # Load current and previous months JSON and collect unfinished tasks
+    # Load current month data and its unfinished tasks.
     if os.path.exists(current_json_path):
         current_data = load_json(current_json_path)
-        for day in current_data:
-            unchecked_tasks.extend(
-                [task for task in day["tasks"] if not task["completed"]]
-            )
+        current_unfinished = load_unfinished_tasks_from_data(current_data)
     else:
         print(f"Warning: Current month JSON file not found: {current_json_path}")
         current_data = []
+        current_unfinished = []
+
+    # Load previous month data and its unfinished tasks, if available.
+    prev_unfinished = []
+    prev_data = []
     if prev_json_path and os.path.exists(prev_json_path):
         prev_data = load_json(prev_json_path)
-        for day in prev_data:
-            unchecked_tasks.extend(
-                [task for task in day["tasks"] if not task["completed"]]
-            )
+        prev_unfinished = load_unfinished_tasks_from_data(prev_data)
+
+    # Combine unfinished tasks from both months.
+    unchecked_tasks = current_unfinished + prev_unfinished
     if not unchecked_tasks:
         print("No unfinished tasks to move.")
         return
 
-    # ✅ Find or create today's section in JSON
-    today_section = next((d for d in current_data if d["date"] == today), None)
-    if not today_section:
-        today_section = {"date": today, "tasks": [], "notes": ""}
-        current_data.append(today_section)
+    today_section = get_or_create_today_section(current_data, today)
 
-    # ✅ Prevent duplicate tasks
+    # Prevent duplicate tasks in today's section.
     existing_task_names = {task["name"] for task in today_section["tasks"]}
     unique_tasks = [
         task for task in unchecked_tasks if task["name"] not in existing_task_names
     ]
 
     today_section["tasks"].extend(unique_tasks)
-
-    # ✅ Remove unfinished tasks from previous days
-    for day in current_data:
-        if day["date"] != today:
-            day["tasks"] = [task for task in day["tasks"] if task["completed"]]
-
+    remove_unfinished_from_previous_days(current_data, today)
     save_json(current_json_path, current_data)
     if prev_data:
         save_json(prev_json_path, prev_data)

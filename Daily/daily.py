@@ -41,7 +41,7 @@ from tasks import (
     print_completed_tasks,
     print_tasks_by_tag,
     move_unchecked,
-    interactive_add_task,
+    prompt_for_task,
 )
 from date_paths import (
     get_file_path,
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         "list_tags": lambda: print_tags(json_path),
         "note": lambda: interactive_add_note(file_path),
         "open": lambda: open_file_in_browser(file_path),
-        "task": lambda: interactive_add_task(file_path),
+        "task": lambda: prompt_for_task(),
         "update": lambda: move_unchecked(),
     }
 
