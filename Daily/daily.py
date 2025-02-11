@@ -56,7 +56,7 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     COMMANDS = {
-        "check": lambda: check_off_task(file_path, args.check),
+        "check": lambda: check_off_task(args.check),
         "edit": lambda: open_file_in_vim(file_path),
         "list": lambda: print_unfinished_tasks(),
         "list_completed": lambda: print_completed_tasks(

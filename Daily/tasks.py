@@ -72,27 +72,36 @@ def interactive_add_task(file_path: str) -> None:
     add_checkbox(file_path, task)
 
 
-## NEEDS TO BE CONVERTED
-def check_off_task(json_path: str, task_number: int) -> None:
-    """Mark a specific task as completed using the task name instead of a dynamic number."""
-
+def check_off_task(task_number: int) -> None:
+    """
+    Mark a specific task as completed based on its position in the list
+    of unfinished tasks.
+    """
+    json_path = get_json_file_path()
+    file_path = get_file_path()
     data = load_json(json_path)
-    unfinished_tasks = list_unfinished_tasks(json_path, True)
 
-    if task_number < 1 or task_number > len(unfinished_tasks):
-        print("Invalid task number.")
-        return
-    selected_task_name = unfinished_tasks[task_number - 1][1]
-    # Search for this task in JSON and mark it as complete
+    current_task_count = 0
+    task_found = False
+
     for day in data:
         for task in day["tasks"]:
-            if task["name"] == selected_task_name:
-                task["completed"] = True
-                save_json(json_path, data)  # ✅ Save the updated JSON
-                print(f"Task {task_number} has been checked off: {task['name']}")
-                return
+            if not task["completed"]:
+                current_task_count += 1
+                if current_task_count == task_number:
+                    task["completed"] = True
+                    task["completed_date"] = day["date"]
+                    task_found = True
+                    break
+        if task_found:
+            break
 
-    print(f"Task {task_number} not found.")
+    if task_found:
+        save_json(json_path, data)
+        write_markdown(file_path, data)
+        print(f"Task {task_number} has been checked off.")
+    else:
+        print("Invalid task number.")
 
 
 def get_unfinished_tasks() -> List[Tuple[int, str, str, str]]:
@@ -280,7 +289,7 @@ def get_tags(json_path: str) -> Dict[str, int]:
             if "tag" in task and task["tag"]:
                 tag_counts[task["tag"]] += 1
 
-    return dict(sorted(tag_counts.items()))  # Sort alphabetically by tag
+    return dict(sorted(tag_counts.items()))
 
 
 def print_tags(json_path: str) -> None:
