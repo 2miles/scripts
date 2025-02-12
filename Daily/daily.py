@@ -31,10 +31,9 @@
 ################################################################################
 
 
-from notes import interactive_add_note
 from cli import parse_arguments
 from editor import open_file_in_vim, open_file_in_browser
-from tasks_core import check_off_task, move_unchecked, prompt_for_task
+from tasks_core import check_off_task, move_unchecked, prompt_for_note, prompt_for_task
 from tasks_printers import (
     print_completed_tasks,
     print_tags,
@@ -62,7 +61,7 @@ if __name__ == "__main__":
         ),  ## TODO optional file path in cli
         "list_tag": lambda: print_tasks_by_tag(json_path, args.list_tag),
         "list_tags": lambda: print_tags(json_path),
-        "note": lambda: interactive_add_note(file_path),
+        "note": lambda: prompt_for_note(),
         "open": lambda: open_file_in_browser(file_path),
         "task": lambda: prompt_for_task(),
         "update": lambda: move_unchecked(),

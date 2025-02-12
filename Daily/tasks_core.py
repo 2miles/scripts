@@ -25,7 +25,7 @@ def create_new_day(data: List[Dict], date: str) -> Dict:
     return new_day
 
 
-def add_checkbox(task_name: str) -> None:
+def add_task(task_name: str) -> None:
     """Add a new checkbox (i.e. task) under today's '### Tasks' section using a JSON-first approach."""
     json_path = get_json_file_path()
     file_path = get_file_path()
@@ -64,7 +64,41 @@ def prompt_for_task() -> None:
         print("Task cannot be empty. Aborting.")
         return
 
-    add_checkbox(task)
+    add_task(task)
+
+
+def add_note(new_note: str) -> None:
+    """
+    Add a new note under today's '### Notes' section as a single text block.
+    """
+    json_path = get_json_file_path()
+    file_path = get_file_path()
+    data = load_json(json_path)
+    today = get_current_date_day()  # e.g., "YYYY-MM-DD"
+
+    day = create_new_day(data, today)
+
+    # Append the new note to the existing notes, ensuring a blank line between notes.
+    if day["notes"]:
+        day["notes"] += f"\n\n{new_note}"
+    else:
+        day["notes"] = new_note
+
+    save_json(json_path, data)
+    write_markdown(file_path, data)
+    print(f"Added note: {new_note[:32]}...")
+
+
+def prompt_for_note() -> None:
+    """
+    Prompt the user for a task interactively.
+    """
+    note = input("Note: ").strip()
+    if not note:
+        print("Note cannot be empty. Aborting.")
+        return
+
+    add_note(note)
 
 
 def check_off_task(task_number: int) -> None:
