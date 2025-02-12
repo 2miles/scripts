@@ -34,14 +34,12 @@
 from notes import interactive_add_note
 from cli import parse_arguments
 from editor import open_file_in_vim, open_file_in_browser
-from tasks import (
-    check_off_task,
-    print_unfinished_tasks,
-    print_tags,
+from tasks_core import check_off_task, move_unchecked, prompt_for_task
+from tasks_printers import (
     print_completed_tasks,
+    print_tags,
     print_tasks_by_tag,
-    move_unchecked,
-    prompt_for_task,
+    print_unfinished_tasks,
 )
 from date_paths import (
     get_file_path,
