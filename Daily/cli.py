@@ -1,8 +1,11 @@
 import argparse
+from datetime import datetime
 
 
 def parse_arguments():
-    """Parse command-line arguments for the daily notes manager."""
+    """
+    Parse command-line arguments.
+    """
     parser = argparse.ArgumentParser(description="Manage your daily notes.")
 
     parser.add_argument(
@@ -53,8 +56,18 @@ def parse_arguments():
         action="store_true",
         help="Move unchecked tasks to the most recent day",
     )
-    # parser.add_argument(
-    #     "-sync", "--sync-json", action="store_true", help="Sync markdown tasks to JSON"
-    # )
+    parser.add_argument(
+        "-s",
+        "--sync",
+        type=int,
+        nargs="?",
+        default=datetime.now().year,
+        help="Sync all Markdown files for the given year (default: current year).",
+    )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.sync is None:
+        args.sync = datetime.now().year
+
+    return args

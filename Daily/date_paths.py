@@ -45,23 +45,27 @@ os.makedirs(os.path.join(BASE_DIR, get_current_year()), exist_ok=True)
 
 # Paths for storing notes and tasks
 def get_file_path():
+    year = get_current_year()
     return os.path.join(
         BASE_DIR,
-        get_current_year(),
-        f"{get_current_year()}_{get_current_month()}_{get_current_month_name()}.md",
+        year,
+        f"{year}_{get_current_month()}_{get_current_month_name()}.md",
     )
 
 
 def get_json_file_path():
+    year = get_current_year()
     return os.path.join(
         BASE_DIR,
-        get_current_year(),
-        f"{get_current_year()}_{get_current_month()}_{get_current_month_name()}.json",
+        year,
+        f"{year}_{get_current_month()}_{get_current_month_name()}.json",
     )
 
 
 def get_prev_json_file_path() -> str:
-    """Return the previous month's JSON file path if it exists."""
+    """
+    Return the previous month's JSON file path if it exists.
+    """
     current_year = int(get_current_year())
     current_month = int(get_current_month())
 

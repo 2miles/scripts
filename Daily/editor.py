@@ -1,9 +1,13 @@
 import os
 import subprocess
+from sync import sync_json
 
 
 def open_file_in_vim(file_path: str) -> None:
-    """Open the file in the default editor at the last unchecked task or the bottom."""
+    """
+    Open the file in the default editor at the last unchecked task or the bottom.
+    Syncs JSON after closing the editor.
+    """
     line_number = None
 
     if os.path.exists(file_path):
@@ -14,16 +18,20 @@ def open_file_in_vim(file_path: str) -> None:
                     line_number = i
 
     # Open Vim at the specified line and move the cursor to the fourth character
-    if line_number:
-        os.system(
-            f"{os.getenv('EDITOR', 'vim')} +{line_number} +'normal 03l' {file_path}"
-        )
-    else:
-        os.system(f"{os.getenv('EDITOR', 'vim')} + {file_path}")
+    editor_cmd = (
+        f"{os.getenv('EDITOR', 'vim')} +{line_number} +'normal 03l' {file_path}"
+        if line_number
+        else f"{os.getenv('EDITOR', 'vim')} + {file_path}"
+    )
+    os.system(editor_cmd)
+    sync_json(file_path)
+    print(f"✅ Synced {file_path} to JSON after editing.")
 
 
 def open_file_in_browser(file_path: str) -> None:
-    """Render Markdown file to HTML and open it in the browser."""
+    """
+    Render Markdown file to HTML and open it in the browser.
+    """
     html_output = file_path.replace(".md", ".html")
     custom_css_url = "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-dark.min.css"
 

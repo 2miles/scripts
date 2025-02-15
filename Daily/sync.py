@@ -1,45 +1,43 @@
-import json
 import os
-from datetime import datetime
-from parsing import parse_markdown  # Ensure this imports correctly
 
-TASKS_FOLDER = os.path.expanduser("~/Notes/Daily")
-
-
-def save_to_json(year: int, parsed_data):
-    """Convert parsed markdown data into JSON format and save."""
-    json_file = os.path.join(TASKS_FOLDER, str(year), f"{year}.json")
-
-    all_tasks = []
-    for entry in parsed_data:
-        for task in entry["tasks"]:
-            all_tasks.append(
-                {
-                    "date": entry["date"],
-                    "completed_date": task.get("completed_date", None),
-                    "completed": task["completed"],
-                    "tag": task.get("tag", ""),
-                    "description": task["name"],
-                }
-            )
-
-    with open(json_file, "w", encoding="utf-8") as json_out:
-        json.dump(all_tasks, json_out, indent=4)
-
-    print(f"✅ Synced tasks for {year} into {json_file}")
+from json_handler import save_json
+from parsing import parse_markdown
+from date_paths import BASE_DIR
 
 
-def sync_year_json(year: int):
-    """Sync all .md files for a given year into JSON format."""
-    year_folder = os.path.join(TASKS_FOLDER, str(year))
+def sync_json(file_path):
+    """
+    Syncs a single Markdown file to JSON.
+    """
+    json_data = parse_markdown(file_path)
+    if not json_data.get("entries"):
+        print(f"⚠️ Warning: No tasks found in {file_path}. JSON will still be updated.")
 
-    all_parsed_data = []
-    for month in range(1, 13):
-        month_name = datetime(year, month, 1).strftime("%B")
-        md_file = os.path.join(year_folder, f"{month_name}.md")
+    json_path = file_path.replace(".md", ".json")
+    save_json(json_path, json_data)
 
-        if os.path.exists(md_file):
-            parsed_data = parse_markdown(md_file)
-            all_parsed_data.extend(parsed_data)
 
-    save_to_json(year, all_parsed_data)
+def sync_year(year: int):
+    """
+    Sync all valid Markdown files for the given year into JSON format.
+    """
+    year_folder = os.path.join(BASE_DIR, str(year))
+
+    if not os.path.exists(year_folder):
+        print(f"Warning: No directory found for {year}. Create it first.")
+        return
+
+    # Dynamically find ALL .md files in the year folder
+    md_files = [
+        os.path.join(year_folder, f)
+        for f in os.listdir(year_folder)
+        if f.endswith(".md")
+    ]
+    if not md_files:
+        print(f"No Markdown files found in {year_folder}. Nothing to sync.")
+        return
+
+    for file_path in md_files:
+        sync_json(file_path)
+
+    print(f"Synced {len(md_files)} Markdown files for {year}.")

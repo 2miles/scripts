@@ -6,12 +6,15 @@ from json_handler import load_json
 
 
 def get_unfinished_tasks() -> List[Tuple[int, str, str, str]]:
-    """Retrieve all unfinished tasks from JSON."""
+    """
+    Retrieve all unfinished tasks from the current months JSON file.
+    """
     data = load_json(get_json_file_path())
+    entries = data.get("entries", [])
     unfinished_tasks = []
     task_count = 1
 
-    for day in data:
+    for day in entries:
         for task in day["tasks"]:
             if not task["completed"]:
                 short_name = task["name"][:45]
@@ -30,9 +33,10 @@ def get_completed_tasks(json_path: str) -> list:
     Retrieve all completed tasks from the current months JSON file.
     """
     data = load_json(json_path)
+    entries = data.get("entries", [])
     completed_tasks = []
 
-    for day in data:
+    for day in entries:
         day_tasks = [
             {
                 "name": task["name"],
@@ -55,11 +59,11 @@ def get_tasks_by_tag(json_path: str, tag: str) -> list:
     Retrieve all tasks that contain the given tag (case-insensitive) from JSON.
     """
     data = load_json(json_path)
-
+    entries = data.get("entries", [])
     tag_lower = tag.lower()
     tasks: List[str] = []
 
-    for day in data:
+    for day in entries:
         day_tasks = [
             {"name": task["name"], "completed": task["completed"], "date": day["date"]}
             for task in day["tasks"]
@@ -76,8 +80,10 @@ def get_tags(json_path: str) -> Dict[str, int]:
     Retrieve all unique tags used and their counts.
     """
     data = load_json(json_path)
+    entries = data.get("entries", [])
     tag_counts: Dict[str, int] = defaultdict(int)
-    for day in data:
+
+    for day in entries:
         for task in day.get("tasks", []):
             if "tag" in task and task["tag"]:
                 tag_counts[task["tag"]] += 1
