@@ -1,4 +1,5 @@
 import os
+import re
 
 from json_handler import save_json
 from parsing import parse_markdown
@@ -11,7 +12,7 @@ def sync_json(file_path):
     """
     json_data = parse_markdown(file_path)
     if not json_data.get("entries"):
-        print(f"⚠️ Warning: No tasks found in {file_path}. JSON will still be updated.")
+        print(f"Warning: No tasks found in {file_path}. JSON will still be updated.")
 
     json_path = file_path.replace(".md", ".json")
     save_json(json_path, json_data)
@@ -27,11 +28,11 @@ def sync_year(year: int):
         print(f"Warning: No directory found for {year}. Create it first.")
         return
 
-    # Dynamically find ALL .md files in the year folder
+    md_pattern = re.compile(rf"^{year}_(0[1-9]|1[0-2])_[a-z]{{3}}\.md$")
     md_files = [
         os.path.join(year_folder, f)
         for f in os.listdir(year_folder)
-        if f.endswith(".md")
+        if md_pattern.match(f)
     ]
     if not md_files:
         print(f"No Markdown files found in {year_folder}. Nothing to sync.")

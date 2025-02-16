@@ -8,7 +8,6 @@ def load_json(file_path: str) -> dict:
     If the file doesn't exist or is invalid, return an empty dictionary.
     """
     if not os.path.exists(file_path):
-        print(f"WARNING: {file_path} does not exist.")
         return {"entries": []}
 
     try:
@@ -26,5 +25,3 @@ def save_json(file_path: str, data: dict) -> None:
     """
     with open(file_path, "w") as file:
         json.dump(data, file, indent=4)
-
-    print(f"✅ JSON saved: {file_path}")
