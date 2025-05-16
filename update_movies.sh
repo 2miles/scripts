@@ -63,7 +63,7 @@ update_movies() {
 	ls {./animated,./anime,./movies,./documentaries} > movies_new.md'
 
 	# Download the movie list
-	scp milesadmin@192.168.0.2:/volume1/data/media/movies_new.md ~/Downloads/
+	scp -O milesadmin@192.168.0.2:/volume1/data/media/movies_new.md ~/Downloads/
 
 	# Sort, clean, and convert to markdown list format
 	cd ~/Downloads
