@@ -25,7 +25,6 @@ def open_file_in_vim(file_path: str) -> None:
     )
     os.system(editor_cmd)
     sync_json(file_path)
-    print(f"✅ Synced {file_path} to JSON after editing.")
 
 
 def open_file_in_browser(file_path: str) -> None:

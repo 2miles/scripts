@@ -22,29 +22,20 @@ Eventually, this system could evolve into a web-based interface with a database,
 
 ## Commands & Behavior
 
-| **Command**                     | **Description**                                          | **Where It Happens**         |
-| ------------------------------- | -------------------------------------------------------- | ---------------------------- |
-| **`day -t "Task description"`** | Add a new task to today’s task list.                     | Updates JSON then markdown   |
-| **`day -n "Note content"`**     | Add a note to today’s notes section.                     | Updates JSON then markdown   |
-| **`day -c NUM`**                | Mark a task as completed (by task number from `day -l`). | Updates JSON then markdown   |
-| **`day -u`**                    | Move all unchecked tasks of the year today’s task list.  | Updates JSON then Markdown   |
-| **`day -l`**                    | List all unfinished tasks.                               | Reads JSON                   |
-| **`day -lc`**                   | List all completed tasks.                                | Reads JSON                   |
-| **`day -lt TAG`**               | List all unfinished tasks with a specific tag.           | Reads JSON                   |
-| **`day -ltags`**                | List all available tags.                                 | Reads JSON                   |
-| **`day -o`**                    | Open today’s Markdown file in an editor.                 | Opens Markdown               |
-| **`day -e`**                    | Parse Markdown and update JSON if the file was edited.   | Reads Markdown, Updates JSON |
+| **Command**       | **Description**                                          | **Where It Happens**         |
+| ----------------- | -------------------------------------------------------- | ---------------------------- |
+| **`day -t`**      | Add a new task to today’s task list.                     | Updates JSON then markdown   |
+| **`day -n`**      | Add a note to today’s notes section.                     | Updates JSON then markdown   |
+| **`day -c NUM`**  | Mark a task as completed (by task number from `day -l`). | Updates JSON then markdown   |
+| **`day -u`**      | Move all unchecked tasks of the year today’s task list.  | Updates JSON then Markdown   |
+| **`day -l`**      | List all unfinished tasks.                               | Reads JSON                   |
+| **`day -lc`**     | List all completed tasks.                                | Reads JSON                   |
+| **`day -lt TAG`** | List all unfinished tasks with a specific tag.           | Reads JSON                   |
+| **`day -ltags`**  | List all available tags.                                 | Reads JSON                   |
+| **`day -o`**      | Open today’s Markdown file in an editor.                 | Opens Markdown               |
+| **`day -e`**      | Parse Markdown and update JSON if the file was edited.   | Reads Markdown, Updates JSON |
 
 ---
-
-### **🔹 How This Works in Phase 2 (JSON as Source of Truth)**
-
-- ✅ **Every modifying operation (`-t`, `-n`, `-c`, `-u`) updates JSON first.**
-- ✅ **Markdown is immediately updated so it stays in sync.**
-- ✅ **Read-only operations (`-l`, `-lt`, `-lc`, `-ltags`) only interact with JSON (faster, no file parsing).**
-- ✅ **No need to manually "sync" JSON and Markdown anymore.**
-
-🚀 **Now, this tool is structured as a clean, file-based task manager.**
 
 ## Future Expansion Plan
 
@@ -95,11 +86,3 @@ Eventually, this system could evolve into a web-based interface with a database,
 - CLI remains functional but interacts with the database instead of JSON.
 
 ## Syncing Md and Json
-
-- day -o: Opens the file up in a browser
-- day -e: Opens the file up in a editor.
-  - All changes to MD are saved in JSON.
-  - No need to manually sync.
-- day -s: Manually sync MD and JSON.
-  - Causes JSON to exactly reflect the MD.
-  - This needs to be done after manually editing the MD files.

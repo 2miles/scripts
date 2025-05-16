@@ -2,6 +2,7 @@ import os
 import re
 from typing import Dict, List
 
+from tasks_printers import print_unfinished_tasks
 from parsing import write_markdown
 from json_handler import load_json, save_json
 from date_paths import (
@@ -134,7 +135,9 @@ def check_off_task(task_number: int) -> None:
     if task_found:
         save_json(json_path, data)
         write_markdown(file_path, data)
-        print(f"Task {task_number} has been checked off.")
+        print_unfinished_tasks()
+
+        print(f"\nTask {task_number} has been checked off.")
     else:
         print("Invalid task number.")
 

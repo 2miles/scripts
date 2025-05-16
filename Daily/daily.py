@@ -27,7 +27,7 @@
 #                            If no year is provided, it defaults to the current year.
 #
 # Notes:
-#   - Tasks are stored in JSON files under "~/Notes/Daily/YYYY/YYYY_MM_monthname.json".
+#   - Tasks are stored in JSON files under "~/Notes/Daily/YYYY/YYYY_MM_mon.json".
 #   - Each month's data is stored separately, with tasks and notes organized by date.
 #   - Tasks are listed under "### Tasks" and notes under "### Notes" in Markdown format.
 #   - Tasks include metadata: name, completion status, tag, and start date.
